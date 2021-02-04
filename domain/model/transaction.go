@@ -16,9 +16,9 @@ const (
 )
 
 type TransactionRepositoryInterface interface {
-	RegisterTransaction(transaction *Transaction) (*Transaction, error)
-	SaveTransaction(transaction *Transaction) error
-	FindTransaction(id string) (*Transaction, error)
+	Register(transaction *Transaction) (*Transaction, error)
+	Save(transaction *Transaction) error
+	Find(id string) (*Transaction, error)
 }
 
 type Transactions struct {
@@ -28,26 +28,28 @@ type Transactions struct {
 type Transaction struct {
 	Base              `valid:"required"`
 	AccountFrom       *Account `valid:"-"`
-	Amount            float64  `json:"amount" valid:"notnull"`
+	AccountFromID     string   `gorm:"column:account_from_id;type:uuid;" valid:"notnull"`
+	Amount            float64  `json:"amount" gorm:"type:float" valid:"notnull"`
 	PixKeyTo          *PixKey  `valid:"-"`
-	Status            string   `json:"status" valid:"notnull"`
-	Description       string   `json:"description" valid:"notnull"`
-	CancelDescription string   `json:"cancel_description" valid:"-"`
+	PixKeyToID        string   `gorm:"column:pixkeyto_id;type:uuid;not null" valid:"-"`
+	Status            string   `json:"status"  gorm:"type:varchar(20)" valid:"notnull"`
+	Description       string   `json:"description" gorm:"type:varchar(255)" valid:"-"`
+	CancelDescription string   `json:"cancel_description" gorm:"type:varchar(255)" valid:"-"`
 }
 
 func (t *Transaction) isValid() error {
 	_, err := govalidator.ValidateStruct(t)
 
 	if t.Amount <= 0 {
-		return errors.New("the amount must be greater than 0")
+		return errors.New("The amount must be greater than 0")
 	}
 
 	if t.Status != TransactionPending && t.Status != TransactionCompleted && t.Status != TransactionError && t.Status != TransactionConfirmed {
-		return errors.New("invalid status for the transaction")
+		return errors.New("Invalid status for the transaction")
 	}
 
 	if t.PixKeyTo.AccountID == t.AccountFrom.ID {
-		return errors.New("the source and destination account cannot be the same")
+		return errors.New("The source and destination account cannot be the same")
 	}
 
 	if err != nil {
